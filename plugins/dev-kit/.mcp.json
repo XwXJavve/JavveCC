@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "tavily": {
+      "type": "sse",
+      "url": "https://mcp.tavily.com/mcp/?tavilyApiKey=${user_config.tavily_api_key}"
+    }
+  }
+}

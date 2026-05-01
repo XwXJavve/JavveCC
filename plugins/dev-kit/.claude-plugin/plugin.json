@@ -1,0 +1,17 @@
+{
+  "name": "dev-kit",
+  "version": "0.1.0",
+  "description": "Personal development toolkit with integrated skills and MCP support",
+  "author": {
+    "name": "XwXJavve"
+  },
+  "keywords": ["dev-tools", "skills", "mcp", "personal"],
+  "userConfig": {
+    "tavily_api_key": {
+      "type": "string",
+      "title": "Tavily API Key",
+      "description": "API key for Tavily web search MCP",
+      "sensitive": true
+    }
+  }
+}
