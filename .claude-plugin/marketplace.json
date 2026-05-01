@@ -9,7 +9,7 @@
     {
       "name": "dev-kit",
       "description": "Personal development toolkit with Tavily web search MCP, deep-research command, explain-code skill, and better-search hooks",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "author": {
         "name": "XwXJavve"
       },

@@ -43,7 +43,7 @@ cc --plugin-dir /path/to/JavveCC/plugins/dev-kit
 
 | Plugin | Version | Description |
 |--------|---------|-------------|
-| [dev-kit](plugins/dev-kit) | 0.1.0 | Dev toolkit: Tavily MCP, deep-research, explain-code, better-search hooks |
+| [dev-kit](plugins/dev-kit) | 0.1.1 | Dev toolkit: Tavily MCP, deep-research, explain-code, better-search hooks |
 
 ## Author
 
