@@ -1,19 +1,24 @@
 {
+  "enabledPlugins": {
+    "frontend-design@claude-plugins-official": true,
+    "context7@claude-plugins-official": true,
+    "code-review@claude-plugins-official": true,
+    "code-simplifier@claude-plugins-official": true,
+    "feature-dev@claude-plugins-official": true,
+    "commit-commands@claude-plugins-official": true,
+    "claude-md-management@claude-plugins-official": true,
+    "plugin-dev@claude-plugins-official": true,
+    "claude-code-setup@claude-plugins-official": true
+  },
   "permissions": {
+    "deny": [],
     "allow": [
       "Bash(ls *)",
-      "Bash(curl -s *)",
-      "Bash(curl -sS *)",
-      "Bash(curl -sL *)",
-      "Bash(curl -sSL *)",
-      "Bash(curl -I *)",
-      "Bash(curl -L *)",
       "Bash(cat *)",
       "Bash(head *)",
       "Bash(tail *)",
       "Bash(which *)",
       "Bash(pwd)",
-      "Bash(echo *)",
       "Bash(date *)",
       "Bash(realpath *)",
       "Bash(readlink *)",
@@ -25,12 +30,11 @@
       "Bash(hostname *)",
       "Bash(id *)",
       "Bash(whoami *)",
-      "Bash(env *)",
-      "Bash(printenv *)",
       "Bash(dirname *)",
       "Bash(basename *)",
       "Bash(mkdir -p *)",
       "Bash(touch *)",
+      "Bash(echo *)",
       "Bash(grep *)",
       "Bash(egrep *)",
       "Bash(fgrep *)",
@@ -55,11 +59,6 @@
       "Bash(lspci *)",
       "Bash(lsusb *)",
       "Bash(tree *)",
-      "Bash(ping *)",
-      "Bash(nslookup *)",
-      "Bash(dig *)",
-      "Bash(host *)",
-      "Bash(getent *)",
       "Bash(seq *)",
       "Bash(shuf *)",
       "Bash(tac *)",
@@ -78,12 +77,10 @@
       "Bash(logname *)",
       "Bash(locale *)",
       "Bash(timedatectl *)",
-      "Bash(history *)",
       "Bash(alias *)",
       "Bash(true)",
       "Bash(false)",
       "Bash(sleep *)"
     ]
-  },
-  "model": "opus[1m]"
+  }
 }
