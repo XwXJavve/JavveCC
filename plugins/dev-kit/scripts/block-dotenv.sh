@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-command -v jq >/dev/null || { jq -n '{"hookSpecificOutput":{"permissionDecision":"allow"},"systemMessage":"block-dotenv: jq not found, skipping"}' ; exit 0; }
+command -v jq >/dev/null || { jq -n '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow"},"systemMessage":"block-dotenv: jq not found, skipping"}' ; exit 0; }
 
 input=$(cat 2>/dev/null || echo '{}')
 file_path=$(echo "$input" | jq -r '.tool_input.file_path // ""')
@@ -13,6 +13,7 @@ if [[ "$basename" =~ ^\.env(\..+)?$ ]]; then
   fi
   jq -n '{
     "hookSpecificOutput": {
+      "hookEventName": "PreToolUse",
       "permissionDecision": "deny"
     },
     "systemMessage": "Do not read or modify .env directly. If a new environment variable is needed, add it to .env.example with a placeholder value, then tell the user to sync it to their .env manually."

@@ -18,7 +18,6 @@ Project memory harness plugin for Claude Code. Maintain cross-session knowledge 
 | `/harness-init` | Initialize both `CLAUDE.md` (concise entry point) and `docs/harness/` (detailed records) |
 | `harness-update` (skill) | Scan conversation, classify knowledge by layer, write to correct destination |
 | `@harness-reviewer` (agent) | Audit both `CLAUDE.md` boundary health and `docs/harness/` content staleness |
-| Stop hook | Prompts to save learnings at end of session when `docs/harness/` exists |
 
 ## Usage
 
@@ -28,4 +27,4 @@ Project memory harness plugin for Claude Code. Maintain cross-session knowledge 
 
 During work: say "save learnings" to capture session knowledge. The skill will ask: "Should this go in CLAUDE.md (every session) or docs/harness/ (on demand)?"
 
-At session end: respond to the hook prompt or run `@harness-reviewer` periodically to keep things tidy.
+Run `@harness-reviewer` periodically to keep things tidy.
