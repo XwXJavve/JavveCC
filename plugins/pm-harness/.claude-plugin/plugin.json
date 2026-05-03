@@ -1,6 +1,6 @@
 {
   "name": "pm-harness",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Project memory harness with layer-aware knowledge management — /harness-init sets up CLAUDE.md (per-session essentials) + docs/harness/ (on-demand records), harness-update skill classifies knowledge by layer, harness-reviewer agent audits both CLAUDE.md boundary and docs/harness/ content for staleness",
   "author": {
     "name": "XwXJavve"
