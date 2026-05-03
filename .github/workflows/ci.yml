@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install bats
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq bats shellcheck jq
+
+      - name: shellcheck
+        run: |
+          shellcheck plugins/*/scripts/*.sh
+
+      - name: bats tests
+        run: |
+          bats tests/
+
+      - name: Validate JSON
+        run: |
+          jq empty .claude-plugin/marketplace.json
+          jq empty plugins/dev-kit/.claude-plugin/plugin.json
+          jq empty plugins/dev-kit/hooks/hooks.json
+          jq empty plugins/dev-kit/.mcp.json
+          jq empty plugins/pm-harness/.claude-plugin/plugin.json
+          jq empty plugins/pm-harness/hooks/hooks.json
