@@ -5,9 +5,219 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
-  lint-and-test:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq shellcheck
+
+      - name: Shellcheck all plugin scripts
+        run: |
+          scripts=$(find plugins -name "*.sh" -type f | sort)
+          if [ -z "$scripts" ]; then
+            echo "No shell scripts found."
+            exit 0
+          fi
+          echo "Checking:"
+          echo "$scripts"
+          echo "$scripts" | xargs shellcheck
+
+  validate-structure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate plugin directory structure
+        run: |
+          failures=0
+          for dir in plugins/*/; do
+            plugin=$(basename "$dir")
+            echo "--- $plugin ---"
+
+            # .claude-plugin/plugin.json must exist
+            if [ ! -f "$dir.claude-plugin/plugin.json" ]; then
+              echo "  FAIL: missing .claude-plugin/plugin.json"
+              failures=$((failures + 1))
+            fi
+
+            # Skill subdirectories must each contain SKILL.md
+            if [ -d "$dir/skills" ]; then
+              for skill_dir in "$dir/skills"/*/; do
+                [ -d "$skill_dir" ] || continue
+                skill_name=$(basename "$skill_dir")
+                if [ ! -f "$skill_dir/SKILL.md" ]; then
+                  echo "  FAIL: skills/$skill_name/ missing SKILL.md"
+                  failures=$((failures + 1))
+                fi
+              done
+            fi
+          done
+          exit "$failures"
+
+      - name: Validate component naming (kebab-case)
+        run: |
+          failures=0
+          for component_dir in agents commands skills; do
+            while IFS= read -r f; do
+              basename="${f##*/}"
+              name="${basename%.*}"
+              if ! echo "$name" | grep -qE '^[a-z0-9]+(-[a-z0-9]+)*$'; then
+                echo "  FAIL: not kebab-case: $f"
+                failures=$((failures + 1))
+              fi
+            done < <(find plugins/*/$component_dir -name "*.md" -type f 2>/dev/null | sort)
+          done
+          exit "$failures"
+
+      - name: Validate agents and commands have YAML frontmatter
+        run: |
+          failures=0
+          while IFS= read -r f; do
+            if ! head -1 "$f" | grep -q '^---$'; then
+              echo "  FAIL: missing YAML frontmatter: $f"
+              failures=$((failures + 1))
+            elif ! head -3 "$f" | grep -q 'description:'; then
+              echo "  FAIL: missing 'description' in frontmatter: $f"
+              failures=$((failures + 1))
+            fi
+          done < <(find plugins/*/agents plugins/*/commands -name "*.md" -type f 2>/dev/null | sort)
+          exit "$failures"
+
+  validate-json:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install jq
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq jq
+
+      - name: Validate all JSON is parseable
+        run: |
+          failures=0
+          while IFS= read -r f; do
+            if ! jq empty "$f" 2>/dev/null; then
+              echo "FAIL: $f is not valid JSON"
+              jq empty "$f" 2>&1
+              failures=$((failures + 1))
+            else
+              echo "  OK: $f"
+            fi
+          done < <(find . -name "*.json" -not -path "./node_modules/*" -not -path "./.git/*" -type f | sort)
+          exit "$failures"
+
+      - name: Validate plugin.json required fields
+        run: |
+          failures=0
+          while IFS= read -r f; do
+            meta_ok=$(jq -e 'has("name") and (.name | length > 0)' "$f" >/dev/null 2>&1 && echo 1 || echo 0)
+            if [ "$meta_ok" = 0 ]; then
+              echo "FAIL: $f missing required field 'name'"
+              failures=$((failures + 1))
+            else
+              echo "  OK: $f — $(jq -r '.name + if has("version") then " v" + .version else " (no version)" end' "$f")"
+            fi
+          done < <(find . -path "*/plugin.json" -type f | sort)
+          exit "$failures"
+
+      - name: Validate hooks.json event names and structure
+        run: |
+          failures=0
+          while IFS= read -r f; do
+            top="$(jq -r 'if has("hooks") then "wrapped" elif has("PreToolUse") or has("Stop") or has("SessionStart") or has("PostToolUse") or has("SubagentStop") or has("SessionEnd") or has("UserPromptSubmit") or has("PreCompact") or has("Notification") then "flat" else "unknown" end' "$f")"
+            if [ "$top" = "unknown" ]; then
+              echo "FAIL: $f — unrecognized hooks.json format (no known event keys)"
+              failures=$((failures + 1))
+              continue
+            fi
+            if [ "$top" = "wrapped" ]; then
+              events_json=$(jq -c '.hooks | keys' "$f")
+            else
+              events_json=$(jq -c 'keys' "$f")
+            fi
+            echo "$events_json" | jq -r '.[]' | while IFS= read -r event; do
+              if ! echo '["PreToolUse","PostToolUse","Stop","SubagentStop","SessionStart","SessionEnd","UserPromptSubmit","PreCompact","Notification"]' | jq -e --arg e "$event" 'index($e)' >/dev/null 2>&1; then
+                echo "  WARN: $f — unknown event '$event'"
+              fi
+            done
+            # Validate each hook has type + required fields
+            events=$(jq -r 'if has("hooks") then .hooks else . end | keys[]' "$f")
+            for event in $events; do
+              idx=0
+              jq -r --arg e "$event" 'if has("hooks") then .hooks[$e][]? else .[$e][]? end | .hooks[]?.type // empty' "$f" 2>/dev/null | while IFS= read -r hook_type; do
+                if [ -z "$hook_type" ]; then
+                  echo "  FAIL: $f — $event hook #$idx is missing 'type'"
+                fi
+              done
+            done
+          done < <(find . -name "hooks.json" -not -path "./node_modules/*" -not -path "./.git/*" -type f | sort)
+          exit "$failures"
+
+      - name: Validate .mcp.json structure
+        run: |
+          failures=0
+          while IFS= read -r f; do
+            if ! jq -e '.mcpServers' "$f" >/dev/null 2>&1; then
+              echo "FAIL: $f missing top-level 'mcpServers' key"
+              failures=$((failures + 1))
+              continue
+            fi
+            jq -r '.mcpServers | to_entries[] | .key' "$f" | while IFS= read -r server; do
+              server_type=$(jq -r --arg s "$server" '.mcpServers[$s] | if has("type") then .type else "stdio" end' "$f")
+              case "$server_type" in
+                stdio)
+                  cmd=$(jq -r --arg s "$server" '.mcpServers[$s].command // ""' "$f")
+                  if [ -z "$cmd" ]; then
+                    echo "  FAIL: $f — server '$server' (stdio) missing 'command'"
+                  fi
+                  ;;
+                sse|http|ws)
+                  url=$(jq -r --arg s "$server" '.mcpServers[$s].url // ""' "$f")
+                  if [ -z "$url" ]; then
+                    echo "  FAIL: $f — server '$server' ($server_type) missing 'url'"
+                  fi
+                  if echo "$url" | grep -qE '^http://|^ws://'; then
+                    echo "  WARN: $f — server '$server' uses non-secure protocol ($url)"
+                  fi
+                  ;;
+              esac
+            done
+            # Check for hardcoded absolute paths
+            hardcoded=$(jq -r '.mcpServers[] | select(.command != null) | .command' "$f" 2>/dev/null | grep -v '^\$' || true)
+            if echo "$hardcoded" | grep -q '^/'; then
+              echo "  WARN: $f — found hardcoded absolute path: $hardcoded (use \$CLAUDE_PLUGIN_ROOT instead)"
+            fi
+          done < <(find . -name ".mcp.json" -not -path "./node_modules/*" -not -path "./.git/*" -type f | sort)
+          exit "$failures"
+
+      - name: Check marketplace.json versions match plugin.json
+        run: |
+          failures=0
+          while IFS= read -r f; do
+            plugin_name=$(jq -r '.name' "$f")
+            plugin_ver=$(jq -r '.version // ""' "$f")
+            [ -z "$plugin_ver" ] && continue
+            marketplace_ver=$(jq -r --arg name "$plugin_name" '.plugins[] | select(.name == $name) | .version // ""' .claude-plugin/marketplace.json)
+            if [ -z "$marketplace_ver" ]; then
+              echo "  WARN: $plugin_name not found in marketplace.json"
+            elif [ "$plugin_ver" != "$marketplace_ver" ]; then
+              echo "FAIL: $plugin_name plugin.json ($plugin_ver) ≠ marketplace.json ($marketplace_ver)"
+              failures=$((failures + 1))
+            else
+              echo "  OK: $plugin_name $plugin_ver"
+            fi
+          done < <(find . -path "*/plugin.json" -type f | sort)
+          exit "$failures"
+
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -15,21 +225,12 @@ jobs:
       - name: Install bats
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq bats shellcheck jq
+          sudo apt-get install -y -qq bats jq
 
-      - name: shellcheck
+      - name: Run bats tests
         run: |
-          shellcheck plugins/*/scripts/*.sh
-
-      - name: bats tests
-        run: |
-          bats tests/
-
-      - name: Validate JSON
-        run: |
-          jq empty .claude-plugin/marketplace.json
-          jq empty plugins/dev-kit/.claude-plugin/plugin.json
-          jq empty plugins/dev-kit/hooks/hooks.json
-          jq empty plugins/dev-kit/.mcp.json
-          jq empty plugins/pm-harness/.claude-plugin/plugin.json
-          jq empty plugins/pm-harness/hooks/hooks.json
+          if [ -d tests ] && [ "$(find tests -name '*.bats' -type f | wc -l)" -gt 0 ]; then
+            bats tests/
+          else
+            echo "No bats tests found."
+          fi
