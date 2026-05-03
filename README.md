@@ -24,8 +24,8 @@ or browse for the plugin in `/plugin > Discover`
 
 | Plugin | Version | Description |
 |--------|---------|-------------|
-| [dev-kit](plugins/dev-kit) | 0.1.1 | Dev toolkit: Tavily MCP, deep-research, explain-code, better-search hooks |
-| [pm-harness](plugins/pm-harness) | 0.2.0 | Project memory harness — cross-session knowledge base, troubleshooting & decision tracking |
+| [dev-kit](plugins/dev-kit) | 0.2.1 | Dev toolkit: Tavily MCP, deep-research, explain-code, better-search hooks |
+| [pm-harness](plugins/pm-harness) | 0.3.1 | Project memory harness — cross-session knowledge base, troubleshooting & decision tracking |
 
 ## Config Usage
 

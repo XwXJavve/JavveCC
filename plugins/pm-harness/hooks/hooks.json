@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash $CLAUDE_PLUGIN_ROOT/scripts/harness-prompt.sh",
+            "command": "bash \"$CLAUDE_PLUGIN_ROOT/scripts/harness-prompt.sh\"",
             "timeout": 70
           }
         ]
