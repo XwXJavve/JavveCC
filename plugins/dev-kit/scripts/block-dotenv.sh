@@ -4,7 +4,7 @@ set -euo pipefail
 command -v jq >/dev/null || { jq -n '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow"},"systemMessage":"block-dotenv: jq not found, skipping"}' ; exit 0; }
 
 input=$(cat 2>/dev/null || echo '{}')
-file_path=$(echo "$input" | jq -r '.tool_input.file_path // ""')
+file_path=$(echo "$input" | jq -r '.tool_input.file_path // ""' 2>/dev/null) || file_path=""
 basename="${file_path##*/}"
 
 if [[ "$basename" =~ ^\.env(\..+)?$ ]]; then

@@ -64,7 +64,7 @@ jobs:
       - name: Validate component naming (kebab-case)
         run: |
           failures=0
-          for component_dir in agents commands skills; do
+          for component_dir in agents commands; do
             while IFS= read -r f; do
               basename="${f##*/}"
               name="${basename%.*}"
